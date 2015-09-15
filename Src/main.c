@@ -37,7 +37,8 @@
 #include "stm32f3_discovery.h"
 #include "stm32f3_discovery_accelerometer.h"
 #include "stm32f3_discovery_gyroscope.h"
-#include "funkcje.h"
+
+
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -49,7 +50,10 @@ UART_HandleTypeDef huart2;
 /* Private variables ---------------------------------------------------------*/
 #define KEY_PRESSED     0x01
 #define KEY_NOT_PRESSED 0x00
-
+extern int flaga_silnik_konf;
+extern int pwm;
+extern int flaga_bluetooth_odbiera;
+extern uint8_t buf_in_bluetooth[4];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -76,7 +80,8 @@ int main(void)
   /* MCU Configuration----------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+  pwm=1000;
+	HAL_Init();
 
   /* Configure the system clock */
   SystemClock_Config();
@@ -96,7 +101,8 @@ int main(void)
   BSP_LED_Init(LED10);
   BSP_LED_Init(LED8);
   BSP_LED_Init(LED6);
-	
+	  pwm=1000;
+
 	HAL_Delay(200);
 			//
 	if(BSP_GYRO_Init() != HAL_OK)
@@ -109,10 +115,6 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
-	if(HAL_UART_Init(&huart2) != HAL_OK)
-	{
-		Error_Handler();
-	}
 	if(HAL_UART_DeInit(&huart2) != HAL_OK)
   {
     Error_Handler();
@@ -121,55 +123,53 @@ int main(void)
   {
     Error_Handler();
   }
-	BSP_LED_Toggle(LED3);
+	  pwm=1000;
+
+	//BSP_LED_Toggle(LED5);
 	
 			/* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1)
-	{
+	{		
 		if(BSP_PB_GetState(BUTTON_USER) == KEY_PRESSED)
 		{	
+			while(BSP_PB_GetState(BUTTON_USER) == KEY_PRESSED)
+			{}
+			BSP_LED_Toggle(LED5);
 			if(flaga_silnik_konf == 0)
-			{
+			{	
+//				bluetooth_odbierz_4bity_int(&huart2);
+//				silniki_wszystkie(pwm);
+//				bluetooth_wyslij(&huart2, buf_in_bluetooth);
+				
 				if(bluetooth_nawiaz_polaczenie(&huart2)==1)
-				{
-					
+				{	
 					bluetooth_wyslij(&huart2,"Polaczono!\n");
-					while (UartReady != SET)
-					{
-					}		 
-					UartReady = RESET;
-					flaga_silnik_konf =1;
 					konfiguruj_silniki();
 				}
 				else
 				{
 				bluetooth_wyslij(&huart2,"Nie polaczono!\n");
-				while (UartReady != SET)
-					{
-					}		 
-					UartReady = RESET;
-				}
-				//konfiguruj_silniki();					
+				}				
 			}		
 			else if(flaga_silnik_konf != 0)
 				{
 			
 					//testuj_obroty();
 					//testuj_zyro();
-				//		testuj_bluetooth();
+				//testuj_bluetooth();
 				}
 		}
+//		
 		if(flaga_silnik_konf!=0)
 			{
-				BSP_LED_Toggle(LED8);
-					HAL_Delay(100);
-				sprintf(buff_temp, "%d", pwm);
-				testuj_bluetooth();
-				silniki_wszystkie(pwm);
-
+				BSP_LED_Toggle(LED7);
+					//HAL_Delay(100);			
+					testuj_bluetooth();
+				
+			//	sprintf(buff_temp, "%d", pwm);		
 			}
   /* USER CODE END WHILE */
 
