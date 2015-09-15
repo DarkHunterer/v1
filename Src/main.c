@@ -34,7 +34,6 @@
 #include "stm32f3xx_hal.h"
 
 /* USER CODE BEGIN Includes */
-
 #include "stm32f3_discovery.h"
 #include "stm32f3_discovery_accelerometer.h"
 #include "stm32f3_discovery_gyroscope.h"
@@ -43,6 +42,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim2;
+
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -55,10 +56,10 @@ TIM_HandleTypeDef htim2;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-  
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -83,10 +84,10 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM2_Init();
+  MX_USART2_UART_Init();
 
   /* USER CODE BEGIN 2 */
 			//inicjuje ledy i guzik
-
   BSP_LED_Init(LED4);
   BSP_LED_Init(LED3);
   BSP_LED_Init(LED5);
@@ -95,24 +96,34 @@ int main(void)
   BSP_LED_Init(LED10);
   BSP_LED_Init(LED8);
   BSP_LED_Init(LED6);
-	//
-			BSP_LED_Toggle(LED10);
-			HAL_Delay(200);
-//DOROBIC OBSLUGE PRZYCISKU NA START
-		if(BSP_GYRO_Init() != HAL_OK)
+	
+	HAL_Delay(200);
+			//
+	if(BSP_GYRO_Init() != HAL_OK)
   {
     /* Initialization Error */
     Error_Handler(); 
   }
-			BSP_LED_Toggle(LED8);
 	///inicjuje PMW na 4 kanalach (wlaczam silniki)
-			HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-			HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
-			HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
-			HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
-	//
-		
-  /* USER CODE END 2 */
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
+	if(HAL_UART_Init(&huart2) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	if(HAL_UART_DeInit(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  } 
+  if(HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+	BSP_LED_Toggle(LED3);
+	
+			/* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -122,27 +133,52 @@ int main(void)
 		{	
 			if(flaga_silnik_konf == 0)
 			{
-				konfiguruj_silniki();
-			}
-			
-				else if(flaga_silnik_konf != 0)
+				if(bluetooth_nawiaz_polaczenie(&huart2)==1)
 				{
+					
+					bluetooth_wyslij(&huart2,"Polaczono!\n");
+					while (UartReady != SET)
+					{
+					}		 
+					UartReady = RESET;
+					flaga_silnik_konf =1;
+					konfiguruj_silniki();
+				}
+				else
+				{
+				bluetooth_wyslij(&huart2,"Nie polaczono!\n");
+				while (UartReady != SET)
+					{
+					}		 
+					UartReady = RESET;
+				}
+				//konfiguruj_silniki();					
+			}		
+			else if(flaga_silnik_konf != 0)
+				{
+			
 					//testuj_obroty();
-					testuj_zyro();
+					//testuj_zyro();
+				//		testuj_bluetooth();
 				}
 		}
 		if(flaga_silnik_konf!=0)
-		{
-			testuj_zyro();
-		}
+			{
+				BSP_LED_Toggle(LED8);
+					HAL_Delay(100);
+				sprintf(buff_temp, "%d", pwm);
+				testuj_bluetooth();
+				silniki_wszystkie(pwm);
+
+			}
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
 		
 		
-		}
+	
   /* USER CODE END 3 */
-
+}
 }
 
 /** System Clock Configuration
@@ -152,6 +188,7 @@ void SystemClock_Config(void)
 
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  RCC_PeriphCLKInitTypeDef PeriphClkInit;
 
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -167,6 +204,10 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1);
+
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2;
+  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+  HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit);
 
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
@@ -212,6 +253,24 @@ void MX_TIM2_Init(void)
 
 }
 
+/* USART2 init function */
+void MX_USART2_UART_Init(void)
+{
+
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONEBIT_SAMPLING_DISABLED ;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  HAL_UART_Init(&huart2);
+
+}
+
 /** Configure pins as 
         * Analog 
         * Input 
@@ -236,6 +295,7 @@ void MX_GPIO_Init(void)
   __GPIOC_CLK_ENABLE();
   __GPIOF_CLK_ENABLE();
   __GPIOA_CLK_ENABLE();
+  __GPIOD_CLK_ENABLE();
   __GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pins : PE2 PE4 PE5 PE0 
@@ -290,27 +350,8 @@ void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-//////void GyroConfig(void)
-//////{
-//////  L3GD20_InitTypeDef L3GD20_InitStructure;
-//////  L3GD20_FilterConfigTypeDef L3GD20_FilterStructure;
-//////   
-//////  /* Configure Mems L3GD20 */
-//////  L3GD20_InitStructure.Power_Mode = L3GD20_MODE_ACTIVE;
-//////  L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_1;
-//////  L3GD20_InitStructure.Axes_Enable = L3GD20_AXES_ENABLE;
-//////  L3GD20_InitStructure.Band_Width = L3GD20_BANDWIDTH_4;
-//////  L3GD20_InitStructure.BlockData_Update = L3GD20_BlockDataUpdate_Continous;
-//////  L3GD20_InitStructure.Endianness = L3GD20_BLE_LSB;
-//////  L3GD20_InitStructure.Full_Scale = L3GD20_FULLSCALE_500; 
-//////  L3GD20_Init(&L3GD20_InitStructure);
-//////    
-//////  L3GD20_FilterStructure.HighPassFilter_Mode_Selection =L3GD20_HPM_NORMAL_MODE_RES;
-//////  L3GD20_FilterStructure.HighPassFilter_CutOff_Frequency = L3GD20_HPFCF_0;
-//////  L3GD20_FilterConfig(&L3GD20_FilterStructure) ;
-//////   
-//////  L3GD20_FilterCmd(L3GD20_HIGHPASSFILTER_ENABLE);
-//////}
+
+
 /* USER CODE END 4 */
 
 #ifdef USE_FULL_ASSERT

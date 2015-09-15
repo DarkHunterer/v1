@@ -373,7 +373,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F303xC</Define>
               <Undefine></Undefine>
-              <IncludePath>..\Inc;..\Drivers\STM32F3xx_HAL_Driver\Inc;..\Drivers\CMSIS\Include;..\Drivers\CMSIS\Device\ST\STM32F3xx\Include;..\Drivers\BSP;..\Drivers\Components\lsm303dlhc;..\Drivers\Components\l3gd20</IncludePath>
+              <IncludePath>..\Inc;     ..\Drivers\STM32F3xx_HAL_Driver\Inc;     ..\Drivers\CMSIS\Include;     ..\Drivers\CMSIS\Device\ST\STM32F3xx\Include;     ..\Drivers\BSP;     ..\Drivers\Components\lsm303dlhc;     ..\Drivers\Components\l3gd20;     ..\MDK-ARM</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -477,6 +477,16 @@
               <FileType>1</FileType>
               <FilePath>..\Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_cortex.c</FilePath>
             </File>
+            <File>
+              <FileName>stm32f3xx_hal_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f3xx_hal_uart_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_uart_ex.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -496,6 +506,11 @@
               <FileName>stm32f3xx_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Src\stm32f3xx_it.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart_defs.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\uart_defs.h</FilePath>
             </File>
           </Files>
         </Group>

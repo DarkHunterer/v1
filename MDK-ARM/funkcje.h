@@ -1,75 +1,31 @@
 #ifndef __FUNKCJE_H
 #define __FUNKCJE_H
 	
-	/* Definition for USARTx clock resources */
-#define USARTx                           USART1
-#define USARTx_CLK_ENABLE()              __USART1_CLK_ENABLE();
-#define DMAx_CLK_ENABLE()                __DMA1_CLK_ENABLE()
-#define USARTx_RX_GPIO_CLK_ENABLE()      __GPIOE_CLK_ENABLE()
-#define USARTx_TX_GPIO_CLK_ENABLE()      __GPIOC_CLK_ENABLE()
-
-#define USARTx_FORCE_RESET()             __USART1_FORCE_RESET()
-#define USARTx_RELEASE_RESET()           __USART1_RELEASE_RESET()
-
-/* Definition for USARTx Pins */
-#define USARTx_TX_PIN                    GPIO_PIN_4
-#define USARTx_TX_GPIO_PORT              GPIOC
-#define USARTx_TX_AF                     GPIO_AF7_USART1
-#define USARTx_RX_PIN                    GPIO_PIN_5
-#define USARTx_RX_GPIO_PORT              GPIOC
-#define USARTx_RX_AF                     GPIO_AF7_USART1
-
-/* Definition for USARTx's DMA */
-#define USARTx_TX_DMA_STREAM              DMA1_Channel4
-#define USARTx_RX_DMA_STREAM              DMA1_Channel5
-
-/* Definition for USARTx's NVIC */
-#define USARTx_DMA_TX_IRQn                DMA1_Channel4_IRQn
-#define USARTx_DMA_RX_IRQn                DMA1_Channel5_IRQn
-#define USARTx_DMA_TX_IRQHandler          DMA1_Channel4_IRQHandler
-#define USARTx_DMA_RX_IRQHandler          DMA1_Channel5_IRQHandler
-
-/* Size of Trasmission buffer */
-#define TXBUFFERSIZE                      (COUNTOF(TxBuffer) - 1)
-/* Size of Reception buffer */
-#define RXBUFFERSIZE                      TXBUFFERSIZE
-  
-/* Exported macro ------------------------------------------------------------*/
-#define COUNTOF(__BUFFER__)   (sizeof(__BUFFER__) / sizeof(*(__BUFFER__)))
-/* Exported functions ------------------------------------------------------- */
-
-	
-	
 #define ABS(x)         (x < 0) ? (-x) : x
 
+#include "stm32f3xx_hal.h"
+#include "stm32f3_discovery.h"
+#include "stm32f3_discovery_accelerometer.h"
+#include "stm32f3_discovery_gyroscope.h"
+#include "uart_defs.h"
 	extern	TIM_HandleTypeDef htim2;	
-	UART_HandleTypeDef UartHandle;
-__IO ITStatus UartReady = RESET;
-
-	uint8_t TxBuffer[] = " **UART communication -- projekt DRON";
-	uint8_t RxBuffer[RXBUFFERSIZE];
+	extern UART_HandleTypeDef huart2;
 
 	int pwm = 1000;
+	int smiec;
 	int flaga_silnik_konf=0;
-	
+	int pwm2=1000;
 	void konfiguruj_uart(void);
 	void Error_Handler(void); 
 	void konfiguruj_silniki(void);
 	void testuj_obroty(void);
 	void testuj_zyro(void);
+	void testuj_bluetooth(void);
+	int bluetooth_nawiaz_polaczenie(UART_HandleTypeDef *huart);
+	void bluetooth_wyslij(UART_HandleTypeDef *huart, uint8_t *pData);
+	void bluetooth_odbierz_4bity_int(UART_HandleTypeDef *huart);
 	void silniki_wszystkie(int pwm_val);
 	
-void konfiguruj_uart()
-{
-	UartHandle.Instance        = USARTx;
-
-  UartHandle.Init.BaudRate   = 9600;
-  UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
-  UartHandle.Init.StopBits   = UART_STOPBITS_1;
-  UartHandle.Init.Parity     = UART_PARITY_NONE;
-  UartHandle.Init.HwFlowCtl  = UART_HWCONTROL_NONE;
-  UartHandle.Init.Mode       = UART_MODE_TX_RX;
-}
 void konfiguruj_silniki()
 {
 		pwm = 2000;
@@ -105,6 +61,65 @@ void silniki_wszystkie(int pwm_val)
 		__HAL_TIM_SetCompare(&htim2, TIM_CHANNEL_2, pwm_val);
 		__HAL_TIM_SetCompare(&htim2, TIM_CHANNEL_3, pwm_val);
 		__HAL_TIM_SetCompare(&htim2, TIM_CHANNEL_4, pwm_val);
+}
+void testuj_bluetooth()
+{
+	UartReady = RESET;
+	BSP_LED_Toggle(LED9);
+	bluetooth_odbierz_4bity_int(&huart2);
+	 while (UartReady != SET)
+  {
+  }
+	BSP_LED_Toggle(LED10);
+	bluetooth_wyslij(&huart2, buf_in_bluetooth);
+}
+int bluetooth_nawiaz_polaczenie(UART_HandleTypeDef *huart)
+{
+	if(HAL_UART_Receive_IT(&huart2, buff_temp, 12) != HAL_OK)
+  {
+    Error_Handler();
+  }
+	 while (UartReady != SET)
+  {
+  }
+	UartReady = RESET;
+	BSP_LED_Toggle(LED7);
+	if((strcmp(buff_temp ,"DRON CONNECT")))
+	{
+		bluetooth_wyslij(&huart2, "Nieprawidlowa komenda. Aby polaczyc wpisz \"DRON CONNECT\"\n");
+		while (UartReady != SET)
+		{
+		}	 
+		UartReady = RESET;
+		return 0;
+	}
+		else
+		{
+		bluetooth_wyslij(&huart2, "Podlaczony. Rozpoczynam transmisje.\n");
+		while (UartReady != SET)
+		{
+		}	 
+		UartReady = RESET;
+		BSP_LED_Toggle(LED9);	
+		return 1;
+		}
+}
+void bluetooth_odbierz_4bity_int(UART_HandleTypeDef *huart)
+{
+	if(HAL_UART_Receive_IT(&huart2, buf_in_bluetooth, 4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+	pwm=atoi(buf_in_bluetooth);
+}
+void bluetooth_wyslij(UART_HandleTypeDef *huart, uint8_t *pData)
+{
+	int dlugosc = strlen(pData);
+	if(HAL_UART_Transmit_IT(&huart2, pData, dlugosc)!= HAL_OK)
+	{
+		Error_Handler();
+	}
+
 }
 void testuj_obroty()
 {
@@ -178,8 +193,6 @@ void testuj_zyro()
     BSP_LED_Off(LED9);
     BSP_LED_Off(LED5);
 }
-
-
 void Error_Handler(void)
 {
   while(1)
@@ -190,3 +203,5 @@ void Error_Handler(void)
 }
 
 #endif
+
+

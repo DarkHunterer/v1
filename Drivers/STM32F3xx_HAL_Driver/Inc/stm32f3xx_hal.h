@@ -45,7 +45,7 @@
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "E:\Projekty\dron\v1\Inc\stm32f3xx_hal_conf.h"
+#include "stm32f3xx_hal_conf.h"
 
 /** @addtogroup STM32F3xx_HAL_Driver
   * @{
