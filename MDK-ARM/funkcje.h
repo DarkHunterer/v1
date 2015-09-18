@@ -19,20 +19,35 @@ extern uint8_t buf_in_bluetooth[4];
 extern uint8_t bluetooth_connect_string[];
 extern uint8_t buff_temp[12];
 	
+	
+	int16_t ThresholdHigh = 1000;
+	int16_t ThresholdLow = -1000;
 	int pwm = 1000;
+	int pwm1 = 1000;
+	int pwm2 = 1000;
+	int pwm3 = 1000;
+	int pwm4 = 1000;
 	int smiec;
+	uint8_t raport_string[24];
 	int flaga_silnik_konf=0;
-	int pwm2=1000;
+	
 	void konfiguruj_uart(void);
-	void Error_Handler(void); 
 	void konfiguruj_silniki(void);
+
 	void testuj_obroty(void);
 	void testuj_zyro(void);
+	void testuj_akcelerometr(void);
 	void testuj_bluetooth(void);
+	
 	int bluetooth_nawiaz_polaczenie(UART_HandleTypeDef *huart);
 	void bluetooth_wyslij(UART_HandleTypeDef *huart, uint8_t *pData);
 	void bluetooth_odbierz_4bity_int(UART_HandleTypeDef *huart);
+
+	void raport_pwm_stan(void);
+	void Error_Handler(void); 
 	void silniki_wszystkie(int pwm_val);
+
+	void koryguj_poziomo(void);
 #endif
 
 

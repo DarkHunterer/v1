@@ -105,6 +105,11 @@ int main(void)
 
 	HAL_Delay(200);
 			//
+	if(BSP_ACCELERO_Init() != HAL_OK)
+  {
+    /* Initialization Error */
+    Error_Handler(); 
+  }
 	if(BSP_GYRO_Init() != HAL_OK)
   {
     /* Initialization Error */
@@ -166,9 +171,9 @@ int main(void)
 		if(flaga_silnik_konf!=0)
 			{
 				BSP_LED_Toggle(LED7);
-					//HAL_Delay(100);			
-					testuj_bluetooth();
-				
+					//HAL_Delay(10);			
+					//testuj_bluetooth();
+					testuj_akcelerometr();
 			//	sprintf(buff_temp, "%d", pwm);		
 			}
   /* USER CODE END WHILE */

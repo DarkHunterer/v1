@@ -162,7 +162,7 @@
         <Ww>
           <count>0</count>
           <WinNumber>1</WinNumber>
-          <ItemText>huart4</ItemText>
+          <ItemText>buffer</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>
